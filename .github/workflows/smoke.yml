@@ -13,3 +13,5 @@ jobs:
         run: docker build -t pdf-optimizer-smoke .
       - name: Run synthetic PDF conversion
         run: docker run --rm pdf-optimizer-smoke python tests/smoke.py
+      - name: Verify mobile upload, progress and download
+        run: docker run --rm pdf-optimizer-smoke python tests/http_smoke.py

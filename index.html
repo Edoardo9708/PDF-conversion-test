@@ -2,71 +2,152 @@
 <html lang="it">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>PDF Optimizer | Internet Archive</title>
+<meta name="theme-color" content="#172339">
+<title>PDF Optimizer · Internet Archive</title>
 <style>
-:root{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color-scheme:light dark}
-*{box-sizing:border-box}body{margin:0;padding:24px 16px;background:#f1f4f8;color:#182535}
-main{max-width:650px;margin:24px auto;padding:30px;background:white;border:1px solid #dde5ef;border-radius:20px;box-shadow:0 12px 32px #1830480d}
-h1{font-size:1.8rem;margin:0 0 6px}p{line-height:1.55;color:#566578}
-.drop{display:block;border:2px dashed #9caed0;border-radius:14px;padding:38px 16px;text-align:center;cursor:pointer;background:#f9fbfd;margin:24px 0}
-input[type=file]{width:100%;max-width:330px}select,button{font:inherit;padding:12px;border-radius:10px;border:1px solid #c2cfdf}
-label.field{font-weight:600;display:block;margin-bottom:7px}select{background:#fff;color:#182535;width:100%}
-button{background:#1860cd;color:#fff;border:none;width:100%;margin-top:24px;font-weight:700;cursor:pointer}button:disabled{opacity:.55;cursor:wait}
-.note{font-size:.86rem;border-radius:9px;background:#f1f5fa;padding:14px;margin-top:20px}
-#result{margin-top:20px;border:1px solid #cddfed;border-radius:12px;padding:16px;display:none}
-#download{display:inline-block;background:#175d39;color:white;text-decoration:none;padding:12px 18px;border-radius:9px;margin-top:8px}
-#error{color:#b91c1c;margin-top:14px}small{color:#64748b}.line{display:flex;justify-content:space-between;gap:8px;margin:8px 0}
-.check{margin-top:18px;display:flex;align-items:center;gap:9px;cursor:pointer}
-@media(prefers-color-scheme:dark){body{background:#101722;color:#ecf3ff}main{background:#1b2635;border-color:#39485a}.drop{background:#202f40;border-color:#586f8d}p,small{color:#bac9d8}select{background:#1b2635;color:white;border-color:#586f8d}.note{background:#26364a}#result{border-color:#586f8d}}
+:root{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:#182535;background:#eef2f8;font-size:16px}
+*{box-sizing:border-box}body{margin:0;padding:14px}main{max-width:640px;margin:16px auto 40px;padding:24px;background:white;border:1px solid #dce5ef;border-radius:20px;box-shadow:0 12px 32px #1830480c}
+h1{font-size:1.65rem;margin:0 0 6px;letter-spacing:-.03em}h2{font-size:1.08rem;margin:0 0 8px}p{line-height:1.48;color:#586679;margin:8px 0}
+.brand{font-size:.8rem;letter-spacing:.05em;font-weight:700;color:#3c669d;text-transform:uppercase;margin-bottom:8px}
+.drop{display:block;border:2px dashed #98afd1;border-radius:14px;padding:25px 12px;text-align:center;cursor:pointer;background:#f8fafd;margin:22px 0}
+.drop strong{display:block;margin-bottom:6px}.drop input{font:inherit;max-width:100%;width:290px}
+label.field{display:block;font-weight:650;margin:8px 0}select,button{font:inherit;border-radius:11px;padding:13px}
+select{width:100%;border:1px solid #bdccdc;background:white;color:#182535}
+.check{display:flex;align-items:center;gap:10px;margin:18px 0;font-size:.95rem}
+button{background:#215dc5;color:white;font-weight:700;border:0;cursor:pointer;width:100%;min-height:48px}
+button:disabled{opacity:.55;cursor:wait}
+section{border:1px solid #d5e2f1;border-radius:14px;padding:18px;margin:22px 0 0;background:#fcfdff}
+[hidden]{display:none!important}.muted{font-size:.86rem;color:#677589}
+#phase{font-size:1.1rem;font-weight:650;margin:10px 0}#elapsed{font-variant-numeric:tabular-nums}
+progress{width:100%;height:15px;accent-color:#2467cf;display:block;margin:14px 0 8px}
+#progressDetail{display:flex;justify-content:space-between;gap:10px;font-size:.84rem;color:#66778d}
+#download{display:block;background:#17623d;color:white;text-align:center;text-decoration:none;border-radius:11px;padding:14px 16px;font-weight:700;margin-top:16px}
+.row{display:flex;justify-content:space-between;margin:8px 0;gap:10px}.row strong{font-variant-numeric:tabular-nums}
+.note{font-size:.82rem;border-radius:12px;background:#edf3fb;padding:14px;line-height:1.5;margin-top:20px}
+.error{color:#a12525;white-space:pre-wrap;overflow-wrap:anywhere}
+#recover{margin-top:12px;background:#51667e}
+.spinner{display:inline-block;width:10px;height:10px;border-radius:50%;background:#2368ce;margin-right:8px;box-shadow:0 0 0 3px #dceaff;animation:pulse 1.2s infinite alternate}
+@keyframes pulse{to{opacity:.35;transform:scale(.8)}} 
+@media(max-width:480px){main{padding:18px;margin:4px auto}body{padding:10px}}
+@media(prefers-color-scheme:dark){:root{color:#eaf0fc;background:#101723}main{background:#1b2635;border-color:#39485a}p,.muted,#progressDetail{color:#bdc9da}.drop,section{background:#202e40;border-color:#566b88}select{color:white;background:#223044;border-color:#566b88}.note{background:#263850}.spinner{box-shadow:0 0 0 3px #2c466f}.error{color:#ffaaa7}}
 </style>
 </head>
 <body><main>
+<div class="brand">Internet Archive · MRC ufficiale</div>
 <h1>PDF Optimizer</h1>
-<p>MRC con il <strong>programma ufficiale di Internet Archive</strong>, in un Codespace GitHub ad accesso privato.</p>
+<p>Comprimi le scansioni e segui il lavoro in diretta, anche dal telefono.</p>
 <form id="form">
-<label class="drop" for="file">📄<br><strong>Seleziona un PDF da comprimere</strong><br><br>
+<label class="drop" for="file"><strong>📄 Seleziona il PDF originale</strong>
 <input id="file" name="file" type="file" accept="application/pdf,.pdf" required>
-<br><small>Massimo 30 MB, fino a 12 pagine</small></label>
-<label class="field" for="quality">Compressione dello sfondo</label>
+<span class="muted" style="display:block;margin-top:10px">Fino a 30 MB · 12 pagine</span></label>
+<label class="field" for="quality">Qualità dell'immagine</label>
 <select id="quality" name="quality">
 <option value="alta">Alta fedeltà</option>
 <option value="bilanciata" selected>Bilanciata</option>
-<option value="compatta">Più compatta</option>
+<option value="compatta">Massima compressione dello sfondo</option>
 </select>
-<label class="check"><input type="checkbox" name="grayscale"> Converti in scala di grigi</label>
-<button id="go" type="submit">Comprimi con Internet Archive</button>
+<label class="check"><input name="grayscale" type="checkbox" checked> Converti in scala di grigi</label>
+<button id="start" type="submit">Avvia la compressione</button>
 </form>
-<div id="error" role="alert"></div>
-<div id="result" aria-live="polite">
-<strong>Conversione completata</strong>
-<div class="line"><span>Originale</span><b id="before"></b></div>
-<div class="line"><span>Ottimizzato</span><b id="after"></b></div>
-<div class="line"><span>Risparmio</span><b id="saved"></b></div>
-<a id="download" href="#" download="ottimizzato.pdf">Scarica il PDF</a>
-</div>
-<div class="note"><strong>Privacy:</strong> i PDF sono elaborati temporaneamente nel tuo Codespace, non nel repository. La porta deve restare <strong>Private</strong>.<br><br><strong>OCR:</strong> il motore ricrea il testo usando Tesseract; i risultati potrebbero differire dall'originale. Conserva sempre l'originale.</div>
+<section id="status" hidden aria-live="polite">
+<h2><span class="spinner" id="spinner"></span> <span id="headline">Caricamento</span></h2>
+<div id="phase">Invio del documento al server…</div>
+<progress id="bar" value="0" max="1"></progress>
+<div id="progressDetail"><span id="steps">Preparo il lavoro</span><span id="elapsed">0 s</span></div>
+<p class="muted" id="hint">L'elaborazione continua sul server anche se il telefono interrompe temporaneamente la connessione.</p>
+<div class="error" id="statusError"></div>
+<button id="recover" type="button" hidden>Riprova a collegarti</button>
+</section>
+<section id="result" hidden>
+<h2>✅ PDF pronto</h2>
+<div class="row"><span>Originale</span><strong id="before"></strong></div>
+<div class="row"><span>Ottimizzato</span><strong id="after"></strong></div>
+<div class="row"><span>Risparmio</span><strong id="saving"></strong></div>
+<a id="download" href="#">Scarica il PDF ottimizzato</a>
+<p class="muted">Il risultato resta scaricabile per 30 minuti, finché il server rimane attivo.</p>
+</section>
+<p class="error" id="error" role="alert"></p>
+<div class="note"><strong>Privacy e qualità.</strong> Il file viene elaborato nel Codespace, non caricato su GitHub. Mantieni la porta su <strong>Private</strong>. L'OCR viene rifatto con Tesseract: per i referti medici controlla testo, numeri e firma e conserva il documento originale.</div>
 </main>
 <script>
-const form=document.getElementById('form'),btn=document.getElementById('go'),error=document.getElementById('error'),result=document.getElementById('result'),download=document.getElementById('download');
-let current=null;
-const pretty=n=> (n/1024).toLocaleString('it-IT',{maximumFractionDigits:1})+' KB';
-form.addEventListener('submit',async e=>{
- e.preventDefault();error.textContent='';result.style.display='none';
- const file=document.getElementById('file').files[0];if(!file){error.textContent='Seleziona un PDF.';return;}
- if(file.size>30*1024*1024){error.textContent='Il file supera 30 MB.';return;}
- btn.disabled=true;btn.textContent='Elaborazione in corso…';
+const $=id=>document.getElementById(id);
+const form=$("form"),start=$("start"),status=$("status"),result=$("result");
+const error=$("error"),recover=$("recover"),statusError=$("statusError");
+const fmt=n=>(n/1024).toLocaleString("it-IT",{maximumFractionDigits:1})+" KB";
+const jobKey="pdfOptimizerActiveJobV2";
+let activeJob=null,session=0;
+function saveJob(id){try{if(id)sessionStorage.setItem(jobKey,id);else sessionStorage.removeItem(jobKey)}catch(e){}}
+function getJob(){try{return sessionStorage.getItem(jobKey)}catch(e){return null}}
+function showStatus(title,phase,done=0,total=0,elapsed=0){
+ status.hidden=false;$("headline").textContent=title;$("phase").textContent=phase;
+ $("bar").max=total||1;$("bar").value=done;
+ $("steps").textContent=total?"Fasi completate: "+done+" / "+total:"Preparo la conversione";
+ $("elapsed").textContent=elapsed+" s";
+}
+function setBusy(busy){start.disabled=busy;$("file").disabled=busy;$("quality").disabled=busy}
+function fail(message){error.textContent=message;setBusy(false)}
+function succeeded(id,data){
+ activeJob=null;saveJob(null);setBusy(false);status.hidden=true;result.hidden=false;
+ $("before").textContent=fmt(data.original_bytes);
+ $("after").textContent=fmt(data.output_bytes);
+ $("saving").textContent=((1-data.output_bytes/data.original_bytes)*100).toLocaleString("it-IT",{maximumFractionDigits:1})+"%";
+ $("download").href="/jobs/"+id+"/download";
+}
+async function watch(id,run){
+ let errors=0;
+ while(run===session){
+  try{
+   const r=await fetch("/jobs/"+encodeURIComponent(id),{cache:"no-store"});
+   let data=await r.json();
+   if(!r.ok)throw Error(data.error||"Stato non disponibile");
+   errors=0;recover.hidden=true;statusError.textContent="";
+   $("spinner").hidden=false;
+   showStatus("Elaborazione in corso",data.phase,data.completed,data.total,data.elapsed);
+   if(data.idle>90){
+    $("hint").textContent="La fase corrente sta richiedendo più tempo; il server è ancora interrogabile.";
+   }
+   if(data.state==="done"){$("spinner").hidden=true;succeeded(id,data);return;}
+   if(data.state==="error"){
+    activeJob=null;saveJob(null);setBusy(false);$("spinner").hidden=true;
+    showStatus("Conversione interrotta",data.phase,data.completed,data.total,data.elapsed);
+    statusError.textContent=data.error||"Errore sconosciuto";
+    return;
+   }
+  }catch(e){
+   errors++;
+   statusError.textContent="Collegamento instabile: il server potrebbe continuare a lavorare. Ritento ("+errors+")…";
+   if(errors>=5){
+    recover.hidden=false;showStatus("Connessione interrotta","Premi «Riprova a collegarti» per aggiornare lo stato.");
+    return;
+   }
+  }
+  await new Promise(resolve=>setTimeout(resolve,1800));
+ }
+}
+function resume(id){
+ session++;activeJob=id;result.hidden=true;error.textContent="";statusError.textContent="";recover.hidden=true;
+ setBusy(true);showStatus("Controllo il lavoro","Recupero lo stato dal server…");
+ watch(id,session);
+}
+form.addEventListener("submit",async ev=>{
+ ev.preventDefault();if(activeJob)return;error.textContent="";result.hidden=true;
+ const file=$("file").files[0];if(!file){fail("Seleziona un PDF.");return;}
+ if(file.size>30*1024*1024){fail("File troppo grande.");return;}
+ setBusy(true);showStatus("Caricamento","Invio il PDF al Codespace…");recover.hidden=true;statusError.textContent="";
  try{
-  const data=new FormData(form),res=await fetch('/compress',{method:'POST',body:data,cache:'no-store'});
-  if(!res.ok){let d=await res.json();throw Error(d.error||'Conversione non riuscita');}
-  const blob=await res.blob();if(current)URL.revokeObjectURL(current);
-  current=URL.createObjectURL(blob);download.href=current;
-  download.download=file.name.replace(/\.pdf$/i,'')+'_InternetArchive.pdf';
-  document.getElementById('before').textContent=pretty(file.size);
-  document.getElementById('after').textContent=pretty(blob.size);
-  document.getElementById('saved').textContent=((1-blob.size/file.size)*100).toLocaleString('it-IT',{maximumFractionDigits:1})+'%';
-  result.style.display='block';
- }catch(err){error.textContent=err.message||'Errore di rete';}
- finally{btn.disabled=false;btn.textContent='Comprimi con Internet Archive';}
+  const response=await fetch("/jobs",{method:"POST",body:new FormData(form),cache:"no-store"});
+  let data=await response.json();
+  if(!response.ok)throw Error(data.error||"Errore durante il caricamento");
+  saveJob(data.id);resume(data.id);
+ }catch(e){
+  status.hidden=true;fail("Il caricamento non è riuscito: "+(e.message==="Failed to fetch"?"il browser non riesce a raggiungere il server. Verifica che la pagina sia aperta sulla porta 8765.":e.message));
+ }
 });
+recover.addEventListener("click",()=>{if(activeJob)resume(activeJob)});
+const oldJob=getJob();
+if(oldJob)resume(oldJob);
+fetch("/health",{cache:"no-store"}).then(r=>r.json()).then(j=>{
+ if(!j.ready){error.textContent="Motore Internet Archive non pronto: verifica il server.";}
+}).catch(()=>{if(!activeJob)error.textContent="Server non raggiungibile. Apri la porta 8765 di Codespaces.";});
 </script>
 </body></html>
