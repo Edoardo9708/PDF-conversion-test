@@ -1,0 +1,13 @@
+*.pdf
+*.png
+*.hocr
+*.tif
+*.tiff
+*.jpg
+*.jpeg
+*.j2k
+*.jp2
+__pycache__/
+.pytest_cache/
+*.log
+.DS_Store

@@ -1,0 +1,15 @@
+name: Test Internet Archive PDF Optimizer
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  build-and-smoke-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build official engine container
+        run: docker build -t pdf-optimizer-smoke .
+      - name: Run synthetic PDF conversion
+        run: docker run --rm pdf-optimizer-smoke python tests/smoke.py

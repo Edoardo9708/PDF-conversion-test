@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PDF Optimizer | Internet Archive</title>
+<style>
+:root{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color-scheme:light dark}
+*{box-sizing:border-box}body{margin:0;padding:24px 16px;background:#f1f4f8;color:#182535}
+main{max-width:650px;margin:24px auto;padding:30px;background:white;border:1px solid #dde5ef;border-radius:20px;box-shadow:0 12px 32px #1830480d}
+h1{font-size:1.8rem;margin:0 0 6px}p{line-height:1.55;color:#566578}
+.drop{display:block;border:2px dashed #9caed0;border-radius:14px;padding:38px 16px;text-align:center;cursor:pointer;background:#f9fbfd;margin:24px 0}
+input[type=file]{width:100%;max-width:330px}select,button{font:inherit;padding:12px;border-radius:10px;border:1px solid #c2cfdf}
+label.field{font-weight:600;display:block;margin-bottom:7px}select{background:#fff;color:#182535;width:100%}
+button{background:#1860cd;color:#fff;border:none;width:100%;margin-top:24px;font-weight:700;cursor:pointer}button:disabled{opacity:.55;cursor:wait}
+.note{font-size:.86rem;border-radius:9px;background:#f1f5fa;padding:14px;margin-top:20px}
+#result{margin-top:20px;border:1px solid #cddfed;border-radius:12px;padding:16px;display:none}
+#download{display:inline-block;background:#175d39;color:white;text-decoration:none;padding:12px 18px;border-radius:9px;margin-top:8px}
+#error{color:#b91c1c;margin-top:14px}small{color:#64748b}.line{display:flex;justify-content:space-between;gap:8px;margin:8px 0}
+.check{margin-top:18px;display:flex;align-items:center;gap:9px;cursor:pointer}
+@media(prefers-color-scheme:dark){body{background:#101722;color:#ecf3ff}main{background:#1b2635;border-color:#39485a}.drop{background:#202f40;border-color:#586f8d}p,small{color:#bac9d8}select{background:#1b2635;color:white;border-color:#586f8d}.note{background:#26364a}#result{border-color:#586f8d}}
+</style>
+</head>
+<body><main>
+<h1>PDF Optimizer</h1>
+<p>MRC con il <strong>programma ufficiale di Internet Archive</strong>, in un Codespace GitHub ad accesso privato.</p>
+<form id="form">
+<label class="drop" for="file">📄<br><strong>Seleziona un PDF da comprimere</strong><br><br>
+<input id="file" name="file" type="file" accept="application/pdf,.pdf" required>
+<br><small>Massimo 30 MB, fino a 12 pagine</small></label>
+<label class="field" for="quality">Compressione dello sfondo</label>
+<select id="quality" name="quality">
+<option value="alta">Alta fedeltà</option>
+<option value="bilanciata" selected>Bilanciata</option>
+<option value="compatta">Più compatta</option>
+</select>
+<label class="check"><input type="checkbox" name="grayscale"> Converti in scala di grigi</label>
+<button id="go" type="submit">Comprimi con Internet Archive</button>
+</form>
+<div id="error" role="alert"></div>
+<div id="result" aria-live="polite">
+<strong>Conversione completata</strong>
+<div class="line"><span>Originale</span><b id="before"></b></div>
+<div class="line"><span>Ottimizzato</span><b id="after"></b></div>
+<div class="line"><span>Risparmio</span><b id="saved"></b></div>
+<a id="download" href="#" download="ottimizzato.pdf">Scarica il PDF</a>
+</div>
+<div class="note"><strong>Privacy:</strong> i PDF sono elaborati temporaneamente nel tuo Codespace, non nel repository. La porta deve restare <strong>Private</strong>.<br><br><strong>OCR:</strong> il motore ricrea il testo usando Tesseract; i risultati potrebbero differire dall'originale. Conserva sempre l'originale.</div>
+</main>
+<script>
+const form=document.getElementById('form'),btn=document.getElementById('go'),error=document.getElementById('error'),result=document.getElementById('result'),download=document.getElementById('download');
+let current=null;
+const pretty=n=> (n/1024).toLocaleString('it-IT',{maximumFractionDigits:1})+' KB';
+form.addEventListener('submit',async e=>{
+ e.preventDefault();error.textContent='';result.style.display='none';
+ const file=document.getElementById('file').files[0];if(!file){error.textContent='Seleziona un PDF.';return;}
+ if(file.size>30*1024*1024){error.textContent='Il file supera 30 MB.';return;}
+ btn.disabled=true;btn.textContent='Elaborazione in corso…';
+ try{
+  const data=new FormData(form),res=await fetch('/compress',{method:'POST',body:data,cache:'no-store'});
+  if(!res.ok){let d=await res.json();throw Error(d.error||'Conversione non riuscita');}
+  const blob=await res.blob();if(current)URL.revokeObjectURL(current);
+  current=URL.createObjectURL(blob);download.href=current;
+  download.download=file.name.replace(/\.pdf$/i,'')+'_InternetArchive.pdf';
+  document.getElementById('before').textContent=pretty(file.size);
+  document.getElementById('after').textContent=pretty(blob.size);
+  document.getElementById('saved').textContent=((1-blob.size/file.size)*100).toLocaleString('it-IT',{maximumFractionDigits:1})+'%';
+  result.style.display='block';
+ }catch(err){error.textContent=err.message||'Errore di rete';}
+ finally{btn.disabled=false;btn.textContent='Comprimi con Internet Archive';}
+});
+</script>
+</body></html>
