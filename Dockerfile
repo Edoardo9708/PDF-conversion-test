@@ -1,5 +1,5 @@
 FROM python:3.11-slim-bookworm
-ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1 PYTHONPATH=/opt/pdf-optimizer
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc g++ make automake autoconf libtool pkg-config git ca-certificates \
     libleptonica-dev libopenjp2-tools libxml2-dev libxslt1-dev \
