@@ -63,6 +63,7 @@ def optimize_pdf(source: bytes, quality: str = "bilanciata",
         results = []
 
         for number in range(1, count + 1):
+            print(f"DIAGNOSTICA MOTORE: pagina {number}/{count}, raster", flush=True)
             prefix = directory / f"page-{number:03d}"
             image = prefix.with_suffix(".png")
             hocr = prefix.with_suffix(".hocr")
@@ -71,6 +72,7 @@ def optimize_pdf(source: bytes, quality: str = "bilanciata",
             _run(["pdftoppm", "-f", str(number), "-l", str(number),
                   "-singlefile", "-r", str(DPI), "-png",
                   str(original), str(prefix)])
+            print(f"DIAGNOSTICA MOTORE: pagina {number}/{count}, OCR", flush=True)
             _run(["tesseract", str(image), str(prefix), "-l", "ita+eng", "hocr"])
             if not hocr.is_file():
                 raise OptimizationError("Tesseract non ha prodotto il livello OCR")
@@ -86,7 +88,9 @@ def optimize_pdf(source: bytes, quality: str = "bilanciata",
             ]
             if grayscale:
                 command.append("--grayscale-pdf")
+            print(f"DIAGNOSTICA MOTORE: pagina {number}/{count}, MRC ufficiale", flush=True)
             _run(command)
+            print(f"DIAGNOSTICA MOTORE: pagina {number}/{count}, MRC completato", flush=True)
             if not output.exists() or output.stat().st_size < 100:
                 raise OptimizationError("Il programma ufficiale non ha prodotto il PDF")
             results.append(output)
