@@ -9,6 +9,7 @@ import re
 import subprocess
 import tempfile
 from pathlib import Path
+from typing import Callable
 
 MAX_BYTES = 30 * 1024 * 1024
 MAX_PAGES = 12
@@ -47,7 +48,8 @@ def _page_count(path: Path) -> int:
 
 
 def optimize_pdf(source: bytes, quality: str = "bilanciata",
-                 grayscale: bool = False) -> tuple[bytes, int]:
+                 grayscale: bool = False,
+                 progress: Callable[[str, int, int], None] | None = None) -> tuple[bytes, int]:
     if quality not in DOWNSAMPLE:
         raise OptimizationError("Qualità non supportata")
     if not source.startswith(b"%PDF-"):
@@ -61,9 +63,12 @@ def optimize_pdf(source: bytes, quality: str = "bilanciata",
         original.write_bytes(source)
         count = _page_count(original)
         results = []
+        report = progress or (lambda stage, done, total: None)
+        total = count * 3 + (1 if count > 1 else 0)
+        completed = 0
 
         for number in range(1, count + 1):
-            print(f"DIAGNOSTICA MOTORE: pagina {number}/{count}, raster", flush=True)
+            report(f"Pagina {number}/{count}: preparo la scansione", completed, total)
             prefix = directory / f"page-{number:03d}"
             image = prefix.with_suffix(".png")
             hocr = prefix.with_suffix(".hocr")
@@ -72,7 +77,8 @@ def optimize_pdf(source: bytes, quality: str = "bilanciata",
             _run(["pdftoppm", "-f", str(number), "-l", str(number),
                   "-singlefile", "-r", str(DPI), "-png",
                   str(original), str(prefix)])
-            print(f"DIAGNOSTICA MOTORE: pagina {number}/{count}, OCR", flush=True)
+            completed += 1
+            report(f"Pagina {number}/{count}: riconoscimento del testo", completed, total)
             _run(["tesseract", str(image), str(prefix), "-l", "ita+eng", "hocr"])
             if not hocr.is_file():
                 raise OptimizationError("Tesseract non ha prodotto il livello OCR")
@@ -88,9 +94,11 @@ def optimize_pdf(source: bytes, quality: str = "bilanciata",
             ]
             if grayscale:
                 command.append("--grayscale-pdf")
-            print(f"DIAGNOSTICA MOTORE: pagina {number}/{count}, MRC ufficiale", flush=True)
+            completed += 1
+            report(f"Pagina {number}/{count}: compressione MRC", completed, total)
             _run(command)
-            print(f"DIAGNOSTICA MOTORE: pagina {number}/{count}, MRC completato", flush=True)
+            completed += 1
+            report(f"Pagina {number}/{count}: compressione completata", completed, total)
             if not output.exists() or output.stat().st_size < 100:
                 raise OptimizationError("Il programma ufficiale non ha prodotto il PDF")
             results.append(output)
@@ -98,9 +106,12 @@ def optimize_pdf(source: bytes, quality: str = "bilanciata",
         if count == 1:
             encoded = results[0].read_bytes()
         else:
+            report("Unisco le pagine ottimizzate", completed, total)
             merged = directory / "result.pdf"
             _run(["pdfunite", *map(str, results), str(merged)])
             if _page_count(merged) != count:
                 raise OptimizationError("Il risultato ha un numero di pagine errato")
             encoded = merged.read_bytes()
+            completed += 1
+        report("PDF pronto da scaricare", completed, total)
         return encoded, count
