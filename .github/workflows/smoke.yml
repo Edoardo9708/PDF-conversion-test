@@ -17,6 +17,8 @@ jobs:
         run: docker build -t pdf-optimizer-smoke .
       - name: Verify local archive safeguards
         run: docker run --rm pdf-optimizer-smoke python tests/batch_safety.py
+      - name: Verify long file streaming with 14 pages
+        run: docker run --rm pdf-optimizer-smoke python tests/long_document.py
       - name: Run synthetic PDF conversion
         run: docker run --rm pdf-optimizer-smoke python tests/smoke.py
       - name: Verify mobile upload, progress and download

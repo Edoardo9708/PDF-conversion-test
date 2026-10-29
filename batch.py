@@ -9,11 +9,21 @@ import time
 from pathlib import Path
 
 import fitz
-from backend import MAX_BYTES, MAX_PAGES, optimize_pdf
+from backend import optimize_pdf_file
 
 ROOT = Path("/archive")
 ENABLED = os.environ.get("PDF_OPTIMIZER_LOCAL_BATCH") == "1" and ROOT.is_dir()
-MAX_FILES = 20000
+# Large but finite configurable local limits. These DO NOT affect cloud uploads.
+def _config_int(name, default, maximum):
+    try:
+        return max(1, min(maximum, int(os.environ.get(name, str(default)))))
+    except (ValueError, OverflowError):
+        return default
+
+
+LOCAL_MAX_BYTES = _config_int("PDF_OPTIMIZER_LOCAL_MAX_MB", 2048, 10240) * 1024 * 1024
+LOCAL_MAX_PAGES = _config_int("PDF_OPTIMIZER_LOCAL_MAX_PAGES", 2000, 10000)
+MAX_FILES = _config_int("PDF_OPTIMIZER_LOCAL_MAX_FILES", 100000, 1000000)
 _LOCK = threading.Lock()
 _JOB = None
 _CANCEL = False
@@ -78,7 +88,7 @@ def gather(relative=""):
             if name.lower().endswith(".pdf") and not p.is_symlink() and p.resolve().is_relative_to(root):
                 output.append(p)
                 if len(output) > MAX_FILES:
-                    raise BatchError("Oltre 20.000 PDF: scegli una sottocartella.")
+                    raise BatchError(f"Oltre {MAX_FILES:,} PDF: scegli una sottocartella.")
     return output
 
 
@@ -97,15 +107,15 @@ def preview(relative=""):
 def inspect(path):
     if path.is_symlink() or not path.is_file() or path.stat().st_nlink > 1:
         raise BatchError("Link o file non regolare.")
-    if path.stat().st_size > MAX_BYTES:
-        raise BatchError("Oltre 30 MB: originale conservato.")
+    if path.stat().st_size > LOCAL_MAX_BYTES:
+        raise BatchError(f"Oltre {LOCAL_MAX_BYTES // (1024*1024)} MB: originale conservato.")
     with path.open("rb") as inp:
         if inp.read(5) != b"%PDF-":
             raise BatchError("PDF non valido.")
     try:
         with fitz.open(path) as doc:
-            if doc.needs_pass or not 1 <= doc.page_count <= MAX_PAGES:
-                raise BatchError("PDF protetto, vuoto o oltre 12 pagine.")
+            if doc.needs_pass or not 1 <= doc.page_count <= LOCAL_MAX_PAGES:
+                raise BatchError(f"PDF protetto, vuoto o oltre {LOCAL_MAX_PAGES} pagine.")
             if "Internet Archive PDF" in ((doc.metadata or {}).get("producer") or ""):
                 raise BatchError("Già ottimizzato con Internet Archive.")
             for page in doc:
@@ -121,30 +131,33 @@ def inspect(path):
 
 
 def convert_one(path, quality, grayscale):
+    """Disk-to-disk, one page at a time, final same-folder atomic replacement."""
     pages = inspect(path)
     old = path.stat(follow_symlinks=False)
-    source = path.read_bytes()
-    if len(source) != old.st_size:
-        raise BatchError("Il file è cambiato durante la lettura.")
-    output, result_pages = optimize_pdf(source, quality, grayscale)
-    if result_pages != pages or not output.startswith(b"%PDF-"):
-        raise BatchError("Conversione non valida.")
-    if len(output) >= len(source):
-        return "skipped", 0, "Risultato non più piccolo."
-    try:
-        with fitz.open(stream=output, filetype="pdf") as doc:
-            if doc.needs_pass or doc.page_count != pages:
-                raise BatchError("Verifica PDF convertito non superata.")
-    except BatchError:
-        raise
-    except Exception as exc:
-        raise BatchError("PDF convertito illeggibile.") from exc
     fd, temp = tempfile.mkstemp(prefix=".__pdfopt_", suffix=".tmp", dir=path.parent)
+    os.close(fd)
     try:
-        with os.fdopen(fd, "wb") as dst:
-            dst.write(output)
-            dst.flush()
-            os.fsync(dst.fileno())
+        result_pages = optimize_pdf_file(
+            path, Path(temp), quality, grayscale,
+            max_bytes=LOCAL_MAX_BYTES, max_pages=LOCAL_MAX_PAGES)
+        output_size = os.stat(temp).st_size
+        if result_pages != pages or output_size < 100:
+            raise BatchError("Conversione non valida.")
+        with open(temp, "rb") as check:
+            if check.read(5) != b"%PDF-":
+                raise BatchError("L'output non è un PDF.")
+        if output_size >= old.st_size:
+            return "skipped", 0, "Risultato non più piccolo."
+        try:
+            with fitz.open(temp) as doc:
+                if doc.needs_pass or doc.page_count != pages:
+                    raise BatchError("Verifica PDF convertito non superata.")
+        except BatchError:
+            raise
+        except Exception as exc:
+            raise BatchError("PDF convertito illeggibile.") from exc
+        with open(temp, "rb") as output:
+            os.fsync(output.fileno())
         os.chmod(temp, stat.S_IMODE(old.st_mode))
         os.utime(temp, ns=(old.st_atime_ns, old.st_mtime_ns))
         now = path.stat(follow_symlinks=False)
@@ -152,11 +165,10 @@ def convert_one(path, quality, grayscale):
             now.st_mtime_ns != old.st_mtime_ns or now.st_size != old.st_size):
             raise BatchError("Il file è cambiato durante la conversione.")
         os.replace(temp, path)
+        return "converted", old.st_size - output_size, ""
     finally:
         if os.path.exists(temp):
             os.unlink(temp)
-    return "converted", len(source) - len(output), ""
-
 
 def active():
     with _LOCK:

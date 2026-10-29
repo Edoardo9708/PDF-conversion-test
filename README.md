@@ -66,6 +66,28 @@ docker run -d --restart unless-stopped --name pdf-optimizer-local --mount "type=
 
 Apri http://127.0.0.1:8765 e usa la sezione Intero archivio, visibile solo nel Docker locale. Seleziona la cartella montata o una sottocartella, visualizza l'anteprima, conferma il backup e avvia la coda.
 
-Le scansioni di una o più pagine vengono convertite una per volta e sostituite atomicamente soltanto quando il PDF è valido e più piccolo. Sottocartelle e nomi restano identici. Si saltano i PDF digitali, quelli già ottimizzati, protetti e oltre 30 MB o 12 pagine. Il backup deve stare fuori dalla cartella montata. Si può interrompere la coda fra due PDF e scaricare un report JSON. Dopo un riavvio la coda ricomincia ma salta i PDF riconosciuti come già ottimizzati; il report di sessione non persiste.
+Le scansioni di una o più pagine vengono convertite una per volta e sostituite atomicamente soltanto quando il PDF è valido e più piccolo. Sottocartelle e nomi restano identici. Si saltano i PDF digitali, quelli già ottimizzati e protetti. **Solo in Docker locale** i limiti predefiniti sono 2 GiB e 2.000 pagine per PDF; la coda accetta fino a 100.000 file. Il backup deve stare fuori dalla cartella montata. Si può interrompere la coda fra due PDF e scaricare un report JSON. Dopo un riavvio la coda ricomincia ma salta i PDF riconosciuti come già ottimizzati; il report di sessione non persiste.
 
 Per fermare/riavviare il container: `docker stop pdf-optimizer-local` e `docker start pdf-optimizer-local`. Su Windows il percorso selezionabile è il percorso del mount Docker, non una cartella arbitraria scelta dal browser.
+
+
+### Elaborazione locale di documenti molto grandi
+
+Solo nella **coda cartelle Docker** l'input è letto direttamente dal disco, senza
+caricare l'intero PDF in RAM. Le scansioni vengono convertite **una pagina alla
+volta**, mantenendo su disco soltanto il PDF compresso scelto per ogni pagina.
+Raster PNG, hOCR e quattro candidati vengono rimossi prima della pagina seguente.
+Al termine le pagine sono riunite su disco e il risultato verificato prima
+della sostituzione atomica del file originale.
+
+Limiti locali predefiniti: **2.048 MiB / 2.000 pagine per PDF** e
+**100.000 PDF nella coda**. Opzionalmente si possono impostare al comando
+\`docker run\` le variabili \`PDF_OPTIMIZER_LOCAL_MAX_MB\`,
+\`PDF_OPTIMIZER_LOCAL_MAX_PAGES\` e \`PDF_OPTIMIZER_LOCAL_MAX_FILES\`
+(fino rispettivamente a 10.240 MiB, 10.000 pagine e 1.000.000 file).
+I limiti servono a prevenire errori, non garantiscono che ogni file entro
+soglia sia elaborabile. Una singola pagina ad altissima risoluzione può
+comunque richiedere molta RAM e il merge finale richiede spazio disco.
+
+La modalità di **upload dal browser/Codespaces rimane 30 MB / 12 pagine**.
+Il servizio non riceve accesso ad altre cartelle del computer.
