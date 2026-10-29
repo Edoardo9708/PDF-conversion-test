@@ -4,6 +4,15 @@ Applicazione web sperimentale per comprimere PDF scansionati utilizzando **il ve
 [archive-pdf-tools](https://github.com/internetarchive/archive-pdf-tools)
 (`recode_pdf` 1.5.7, MRC/JPEG2000/JBIG2). Non è un'implementazione alternativa.
 
+## Aggiornamento facile da smartphone
+Nel terminale del Codespace basta **un solo comando**:
+
+```bash
+cd /workspaces/PDF-conversion-test && git pull origin main && python restart.py
+```
+
+Il comando riavvia il solo server PDF Optimizer. Poi aggiorna la scheda web della porta **8765**, lasciata **Private**. Nell'app ora sono visibili OCR, compressione e stato dettagliato. La conversione continua sul server anche se il telefono sospende il browser; ricaricando la pagina si recupera il lavoro della sessione, se il server è ancora attivo.
+
 ## Aprire nel Codespace già creato
 1. Nel terminale di Codespaces eseguire `git pull origin main`.
 2. Aprire la palette comandi (`Ctrl+Shift+P`) e selezionare **Codespaces: Rebuild Container**.
