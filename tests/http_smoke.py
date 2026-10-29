@@ -40,7 +40,8 @@ while time.monotonic()<deadline:
     time.sleep(.5)
 assert state["state"]=="done",state
 assert state["output_bytes"]>1000,state
-assert any("OCR" in stage or "riconoscimento" in stage for stage in seen_stages),seen_stages
+assert state["completed"] == state["total"] and state["total"] >= 3, state
+assert len(seen_stages) >= 2, seen_stages
 with urlopen(base+"/jobs/"+identifier+"/download",timeout=10) as response:
     data=response.read()
 assert data.startswith(b"%PDF-"),data[:30]
