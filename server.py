@@ -19,10 +19,12 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 from backend import MAX_BYTES, OptimizationError, optimize_pdf
+import batch
 
 PORT = int(os.getenv("PORT", "8765"))
 INDEX = (Path(__file__).parent / "index.html").read_bytes()
 UPLOAD_MODULE = (Path(__file__).parent / "upload.mjs").read_bytes()
+BATCH_UI = (Path(__file__).parent / "batch-ui.mjs").read_bytes()
 JOBS: dict[str, dict] = {}
 LOCK = threading.Lock()
 RESULT_TTL = 30 * 60  # Keep completed results in memory for 30 minutes.
@@ -107,6 +109,37 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/upload.mjs":
             self.send_data(200, UPLOAD_MODULE, "text/javascript; charset=utf-8")
             return
+        if path == "/batch-ui.mjs":
+            self.send_data(200, BATCH_UI, "text/javascript; charset=utf-8")
+            return
+        if path.startswith("/batch/"):
+            if not batch.available():
+                self.json(404, {"error": "Modalità archivio disponibile solo localmente."})
+                return
+            from urllib.parse import parse_qs
+            selected = parse_qs(urlsplit(self.path).query, keep_blank_values=True).get("path", [""])[0]
+            try:
+                if path == "/batch/config":
+                    self.json(200, {"enabled": True})
+                elif path == "/batch/browse":
+                    self.json(200, batch.browse(selected))
+                elif path == "/batch/preview":
+                    self.json(200, batch.preview(selected))
+                elif path == "/batch/status":
+                    self.json(200, batch.state())
+                elif path == "/batch/report":
+                    self.send_data(
+                        200, json.dumps(batch.report(), ensure_ascii=False).encode(),
+                        "application/json; charset=utf-8",
+                        {"Content-Disposition": 'attachment; filename="resoconto-pdf-optimizer.json"'}
+                    )
+                else:
+                    self.json(404, {"error": "Funzione inesistente."})
+            except batch.BatchError as exc:
+                self.json(400, {"error": str(exc)})
+            except (OSError, ValueError):
+                self.json(400, {"error": "Cartella non accessibile."})
+            return
         if path == "/health":
             self.json(200, {
                 "ready": all(shutil.which(binary) for binary in
@@ -155,10 +188,50 @@ class Handler(BaseHTTPRequestHandler):
             self.json(200, response)
 
     def do_POST(self) -> None:
+        path = urlsplit(self.path).path
+        if path.startswith("/batch/"):
+            if not batch.available():
+                self.json(404, {"error": "Modalità archivio disponibile solo localmente."})
+                return
+            if path not in ("/batch/start", "/batch/stop"):
+                self.json(404, {"error": "Funzione inesistente."})
+                return
+            # Require JSON same-origin browser call; never accept cross-origin forms.
+            try:
+                length = int(self.headers.get("Content-Length", "0"))
+                if not 2 <= length <= 8192 or self.headers.get("Content-Type", "").split(";")[0] != "application/json":
+                    raise ValueError("Invalid content type or size")
+                origin = self.headers.get("Origin")
+                host = self.headers.get("Host", "")
+                if origin and origin not in ("http://" + host, "https://" + host):
+                    self.json(403, {"error": "Richiesta da un sito non autorizzato."})
+                    return
+                payload = json.loads(self.rfile.read(length))
+                if not isinstance(payload, dict):
+                    raise ValueError("Expected object")
+                if path == "/batch/stop":
+                    self.json(200, batch.stop())
+                else:
+                    with LOCK:
+                        busy_single = any(job["state"] in ("queued", "running") for job in JOBS.values())
+                    if busy_single:
+                        self.json(409, {"error": "Termina prima la conversione singola."})
+                        return
+                    self.json(202, batch.start(
+                        payload.get("path", ""), payload.get("quality", "automatica"),
+                        payload.get("grayscale", True), payload.get("backup_confirmed", False)))
+            except batch.BatchError as exc:
+                self.json(400, {"error": str(exc)})
+            except (TypeError, ValueError, UnicodeError):
+                self.json(400, {"error": "Richiesta non valida."})
+            return
         if urlsplit(self.path).path != "/jobs":
             self.json(404, {"error": "Funzione non trovata"})
             return
         prune_jobs()
+        if batch.active():
+            self.json(429, {"error": "La coda dell'archivio è in esecuzione."})
+            return
         with LOCK:
             busy = any(job["state"] in ("queued", "running") for job in JOBS.values())
         if busy:

@@ -30,6 +30,12 @@ progress{width:100%;height:15px;accent-color:#2467cf;display:block;margin:14px 0
 @keyframes pulse{to{opacity:.35;transform:scale(.8)}} 
 @media(max-width:480px){main{padding:18px;margin:4px auto}body{padding:10px}}
 @media(prefers-color-scheme:dark){:root{color:#eaf0fc;background:#101723}main{background:#1b2635;border-color:#39485a}p,.muted,#progressDetail{color:#bdc9da}.drop,section{background:#202e40;border-color:#566b88}select{color:white;background:#223044;border-color:#566b88}.note{background:#263850}.spinner{box-shadow:0 0 0 3px #2c466f}.error{color:#ffaaa7}}
+
+#batchFolders{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
+.folderBtn{width:auto;min-height:38px;padding:9px 12px;text-align:left;background:#e0eaf7;color:#163c69;font-weight:600}
+#batchRecent,#batchExamples{white-space:pre-wrap;overflow-wrap:anywhere;max-height:220px;overflow:auto;font-size:.82rem}
+#batchStop{background:#a33434}
+@media(prefers-color-scheme:dark){.folderBtn{background:#344b68;color:#e7f0fb}}
 </style>
 </head>
 <body><main>
@@ -68,6 +74,35 @@ progress{width:100%;height:15px;accent-color:#2467cf;display:block;margin:14px 0
 <a id="download" href="#">Scarica il PDF ottimizzato</a>
 <p class="muted">Il risultato resta scaricabile per 30 minuti, finché il server rimane attivo.</p>
 </section>
+
+<section id="batchPanel" hidden>
+<h2>📚 Intero archivio · modalità locale</h2>
+<p>Seleziona una cartella condivisa con Docker. Elaboro i PDF anche nelle sottocartelle e <strong>sostituisco solo quelli compressi correttamente e più piccoli</strong>, senza cambiare nomi o struttura.</p>
+<div class="note"><strong>ATTENZIONE:</strong> questa modalità sovrascrive realmente i PDF. Prima crea e verifica un backup completo in un'altra posizione. I PDF digitali e quelli già ottimizzati vengono saltati.</div>
+<p><strong>Cartella:</strong> <span id="batchPath">/archive</span></p>
+<div id="batchFolders"></div>
+<button type="button" id="batchPreview">Analizza cartella e sottocartelle</button>
+<p class="muted" id="batchInfo"></p>
+<div id="batchPreviewResult" hidden>
+<div class="row"><span>PDF individuati</span><strong id="batchCount">0</strong></div>
+<div class="row"><span>Spazio occupato</span><strong id="batchBytes">0 MB</strong></div>
+<details><summary>Mostra i primi file trovati</summary><pre id="batchExamples"></pre></details>
+<label class="field" for="batchQuality">Qualità della coda</label>
+<select id="batchQuality"><option value="automatica" selected>Automatica · 4 prove</option><option value="bilanciata">Bilanciata · più veloce</option><option value="alta">Alta fedeltà</option><option value="compatta">Compatta</option></select>
+<label class="check"><input id="batchGrayscale" type="checkbox" checked> Scala di grigi</label>
+<label class="check"><input id="batchBackup" type="checkbox"> Confermo di avere un backup separato dell'archivio.</label>
+<button type="button" id="batchStart" disabled>Avvia coda e sovrascrivi i PDF idonei</button>
+</div>
+<div id="batchStatus" hidden>
+<p class="muted" id="batchCurrent"></p>
+<progress id="batchProgress" value="0" max="1"></progress>
+<p class="muted" id="batchNumbers"></p>
+<pre id="batchRecent"></pre>
+<button type="button" id="batchStop" hidden>Ferma dopo il PDF corrente</button>
+<a id="batchReport" href="/batch/report" download hidden>Scarica report della coda</a>
+</div>
+</section>
+<script type="module" src="/batch-ui.mjs"></script>
 <p class="error" id="error" role="alert"></p>
 <div class="note"><strong>Google Drive:</strong> il file selezionato viene prima letto in memoria, poi inviato al Codespace. Se Android/Brave non permette di leggerlo, scaricalo da Drive nella cartella Download. Non servono link pubblici o autorizzazioni aggiuntive.<br><br><strong>Privacy e qualità.</strong> Il file viene elaborato nel Codespace, non caricato su GitHub. Mantieni la porta su <strong>Private</strong>. L'OCR viene rifatto con Tesseract: il confronto automatico valuta la somiglianza visiva, non certifica assenza di errori. Per i referti medici controlla testo, numeri e firma e conserva il documento originale.</div>
 </main>

@@ -51,3 +51,21 @@ Il documento non deve essere reso pubblico.
 - La compressione è con perdita: firme, valori clinici e OCR vanno controllati. Conservare l'originale.
 
 Motore terzo soggetto alla licenza AGPL-3.0. Questo prototipo è fornito a scopo di test.
+
+
+## Modalità archivio locale Windows (Docker)
+
+Quando il PC sarà disponibile, avvia Docker Desktop e crea prima una copia di backup dell'archivio fuori dalla cartella da elaborare.
+Nel repository esegui:
+
+```powershell
+docker build -t pdf-optimizer .
+$archivio = 'C:\ArchivioPDF' # Modifica con il percorso REALE della copia da elaborare
+docker run -d --restart unless-stopped --name pdf-optimizer-local --mount "type=bind,source=$archivio,target=/archive" -e PDF_OPTIMIZER_LOCAL_BATCH=1 -p 127.0.0.1:8765:8765 pdf-optimizer
+```
+
+Apri http://127.0.0.1:8765 e usa la sezione Intero archivio, visibile solo nel Docker locale. Seleziona la cartella montata o una sottocartella, visualizza l'anteprima, conferma il backup e avvia la coda.
+
+Le scansioni di una o più pagine vengono convertite una per volta e sostituite atomicamente soltanto quando il PDF è valido e più piccolo. Sottocartelle e nomi restano identici. Si saltano i PDF digitali, quelli già ottimizzati, protetti e oltre 30 MB o 12 pagine. Il backup deve stare fuori dalla cartella montata. Si può interrompere la coda fra due PDF e scaricare un report JSON. Dopo un riavvio la coda ricomincia ma salta i PDF riconosciuti come già ottimizzati; il report di sessione non persiste.
+
+Per fermare/riavviare il container: `docker stop pdf-optimizer-local` e `docker start pdf-optimizer-local`. Su Windows il percorso selezionabile è il percorso del mount Docker, non una cartella arbitraria scelta dal browser.

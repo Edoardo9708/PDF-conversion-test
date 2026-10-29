@@ -11,8 +11,12 @@ jobs:
       - uses: actions/checkout@v4
       - name: Check Android Drive upload staging (JavaScript)
         run: node tests/upload.test.mjs
+      - name: Syntax-check local archive browser
+        run: node --check batch-ui.mjs
       - name: Build official engine container
         run: docker build -t pdf-optimizer-smoke .
+      - name: Verify local archive safeguards
+        run: docker run --rm pdf-optimizer-smoke python tests/batch_safety.py
       - name: Run synthetic PDF conversion
         run: docker run --rm pdf-optimizer-smoke python tests/smoke.py
       - name: Verify mobile upload, progress and download
