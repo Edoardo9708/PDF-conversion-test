@@ -35,15 +35,16 @@ progress{width:100%;height:15px;accent-color:#2467cf;display:block;margin:14px 0
 <body><main>
 <div class="brand">Internet Archive · MRC ufficiale</div>
 <h1>PDF Optimizer</h1>
-<p>Comprimi le scansioni e segui il lavoro in diretta, anche dal telefono.</p>
+<p>Comprimi le scansioni e segui il lavoro in diretta, anche dal telefono. La modalità automatica confronta quattro compressioni e sceglie quella più piccola con una resa vicina alla versione ad alta fedeltà.</p>
 <form id="form">
 <label class="drop" for="file"><strong>📄 Seleziona il PDF originale</strong>
 <input id="file" name="file" type="file" accept="application/pdf,.pdf" required>
 <span class="muted" style="display:block;margin-top:10px">Fino a 30 MB · 12 pagine</span></label>
 <label class="field" for="quality">Qualità dell'immagine</label>
 <select id="quality" name="quality">
+<option value="automatica" selected>Automatica — confronta 4 versioni</option>
 <option value="alta">Alta fedeltà</option>
-<option value="bilanciata" selected>Bilanciata</option>
+<option value="bilanciata">Bilanciata</option>
 <option value="compatta">Massima compressione dello sfondo</option>
 </select>
 <label class="check"><input name="grayscale" type="checkbox" checked> Converti in scala di grigi</label>
@@ -60,6 +61,7 @@ progress{width:100%;height:15px;accent-color:#2467cf;display:block;margin:14px 0
 </section>
 <section id="result" hidden>
 <h2>✅ PDF pronto</h2>
+<p class="muted" id="decision" hidden></p>
 <div class="row"><span>Originale</span><strong id="before"></strong></div>
 <div class="row"><span>Ottimizzato</span><strong id="after"></strong></div>
 <div class="row"><span>Risparmio</span><strong id="saving"></strong></div>
@@ -67,7 +69,7 @@ progress{width:100%;height:15px;accent-color:#2467cf;display:block;margin:14px 0
 <p class="muted">Il risultato resta scaricabile per 30 minuti, finché il server rimane attivo.</p>
 </section>
 <p class="error" id="error" role="alert"></p>
-<div class="note"><strong>Privacy e qualità.</strong> Il file viene elaborato nel Codespace, non caricato su GitHub. Mantieni la porta su <strong>Private</strong>. L'OCR viene rifatto con Tesseract: per i referti medici controlla testo, numeri e firma e conserva il documento originale.</div>
+<div class="note"><strong>Privacy e qualità.</strong> Il file viene elaborato nel Codespace, non caricato su GitHub. Mantieni la porta su <strong>Private</strong>. L'OCR viene rifatto con Tesseract: il confronto automatico valuta la somiglianza visiva, non certifica assenza di errori. Per i referti medici controlla testo, numeri e firma e conserva il documento originale.</div>
 </main>
 <script>
 const $=id=>document.getElementById(id);
@@ -91,6 +93,11 @@ function succeeded(id,data){
  $("before").textContent=fmt(data.original_bytes);
  $("after").textContent=fmt(data.output_bytes);
  $("saving").textContent=((1-data.output_bytes/data.original_bytes)*100).toLocaleString("it-IT",{maximumFractionDigits:1})+"%";
+ const sel=data.selection;
+ if(sel && sel.mode==="automatica"){
+  $("decision").hidden=false;
+  $("decision").textContent="Confrontate "+sel.tested+" varianti. Scelta: "+Object.entries(sel.selected).map(([k,v])=>k+" ("+v+" pag.)").join(", ")+".";
+ }else{$("decision").hidden=true;}
  $("download").href="/jobs/"+id+"/download";
 }
 async function watch(id,run){

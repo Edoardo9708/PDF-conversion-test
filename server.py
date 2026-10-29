@@ -56,7 +56,8 @@ def process_job(job_id: str, raw: bytes, quality: str, grayscale: bool) -> None:
 
     try:
         update_job(job_id, state="running", phase="Analizzo il PDF originale")
-        result, pages = optimize_pdf(raw, quality, grayscale, progress=report)
+        result, pages = optimize_pdf(raw, quality, grayscale, progress=report,
+            summary=lambda details: update_job(job_id, selection=details))
         update_job(job_id, state="done", phase="Conversione completata",
                    result=result, pages=pages, output_bytes=len(result))
     except OptimizationError as exc:
@@ -134,6 +135,7 @@ class Handler(BaseHTTPRequestHandler):
                     "original_bytes": job["original_bytes"],
                     "output_bytes": job.get("output_bytes"),
                     "pages": job.get("pages"),
+                    "selection": job.get("selection"),
                     "error": job.get("error")
                 }
         if response is None:
@@ -188,7 +190,7 @@ class Handler(BaseHTTPRequestHandler):
             if raw is None or not raw.startswith(b"%PDF-") or len(raw) > MAX_BYTES:
                 self.json(400, {"error": "Seleziona un PDF valido (massimo 30 MB)"})
                 return
-            if quality not in ("alta", "bilanciata", "compatta"):
+            if quality not in ("alta", "bilanciata", "compatta", "automatica"):
                 self.json(400, {"error": "Qualità sconosciuta"})
                 return
             job_id = secrets.token_urlsafe(24)
