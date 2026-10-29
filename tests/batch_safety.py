@@ -38,4 +38,26 @@ with tempfile.TemporaryDirectory() as rootdir:
                 pass
         assert batch.browse("")["folders"][0]["name"]=="A"
         assert batch.gather("A")==[root/"A"/"native.pdf",original]
+
+        # A genuinely smaller, still valid PDF with the same page is written
+        # atomically. Here the converter is stubbed to isolate file handling.
+        previous=original.read_bytes()
+        with fitz.open(stream=previous,filetype="pdf") as src:
+            smaller=src.tobytes(garbage=4,deflate=True)
+        assert len(smaller)<len(previous), (len(smaller),len(previous))
+        with patch.object(batch,"optimize_pdf",return_value=(smaller,1)):
+            outcome,saved,_=batch.convert_one(original,"automatica",True)
+        assert outcome=="converted" and saved==len(previous)-len(smaller)
+        assert original.read_bytes()==smaller
+        assert not list(sub.glob(".__pdfopt_*"))
+
+        # Bad output never overwrites the original.
+        with patch.object(batch,"optimize_pdf",return_value=(b"%PDF-bad",1)):
+            try:
+                batch.convert_one(original,"automatica",True)
+                raise AssertionError("Invalid output must not overwrite source")
+            except batch.BatchError:
+                pass
+        assert original.read_bytes()==smaller
+
 print("Local archive traversal safety OK")
