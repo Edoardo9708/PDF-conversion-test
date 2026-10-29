@@ -39,7 +39,7 @@ progress{width:100%;height:15px;accent-color:#2467cf;display:block;margin:14px 0
 <form id="form">
 <label class="drop" for="file"><strong>📄 Seleziona il PDF originale</strong>
 <input id="file" name="file" type="file" accept="application/pdf,.pdf" required>
-<span class="muted" style="display:block;margin-top:10px">Fino a 30 MB · 12 pagine</span></label>
+<span class="muted" style="display:block;margin-top:10px">Fino a 30 MB · 12 pagine · Anche da Google Drive, se il browser può leggerlo</span></label>
 <label class="field" for="quality">Qualità dell'immagine</label>
 <select id="quality" name="quality">
 <option value="automatica" selected>Automatica — confronta 4 versioni</option>
@@ -69,9 +69,10 @@ progress{width:100%;height:15px;accent-color:#2467cf;display:block;margin:14px 0
 <p class="muted">Il risultato resta scaricabile per 30 minuti, finché il server rimane attivo.</p>
 </section>
 <p class="error" id="error" role="alert"></p>
-<div class="note"><strong>Privacy e qualità.</strong> Il file viene elaborato nel Codespace, non caricato su GitHub. Mantieni la porta su <strong>Private</strong>. L'OCR viene rifatto con Tesseract: il confronto automatico valuta la somiglianza visiva, non certifica assenza di errori. Per i referti medici controlla testo, numeri e firma e conserva il documento originale.</div>
+<div class="note"><strong>Google Drive:</strong> il file selezionato viene prima letto in memoria, poi inviato al Codespace. Se Android/Brave non permette di leggerlo, scaricalo da Drive nella cartella Download. Non servono link pubblici o autorizzazioni aggiuntive.<br><br><strong>Privacy e qualità.</strong> Il file viene elaborato nel Codespace, non caricato su GitHub. Mantieni la porta su <strong>Private</strong>. L'OCR viene rifatto con Tesseract: il confronto automatico valuta la somiglianza visiva, non certifica assenza di errori. Per i referti medici controlla testo, numeri e firma e conserva il documento originale.</div>
 </main>
-<script>
+<script type="module">
+import {stagePdf, makeUploadPayload} from "./upload.mjs";
 const $=id=>document.getElementById(id);
 const form=$("form"),start=$("start"),status=$("status"),result=$("result");
 const error=$("error"),recover=$("recover"),statusError=$("statusError");
@@ -140,14 +141,23 @@ form.addEventListener("submit",async ev=>{
  ev.preventDefault();if(activeJob)return;error.textContent="";result.hidden=true;
  const file=$("file").files[0];if(!file){fail("Seleziona un PDF.");return;}
  if(file.size>30*1024*1024){fail("File troppo grande.");return;}
- setBusy(true);showStatus("Caricamento","Invio il PDF al Codespace…");recover.hidden=true;statusError.textContent="";
+ setBusy(true);showStatus("Preparazione","Leggo il PDF selezionato, anche da Google Drive…");recover.hidden=true;statusError.textContent="";
  try{
-  const response=await fetch("/jobs",{method:"POST",body:new FormData(form),cache:"no-store"});
+  // Android Drive/Chromium: do NOT send the original cloud-backed File directly.
+  // Stage it as independent bytes first, then send a fresh in-memory Blob.
+  const pdf=await stagePdf(file,(loaded,total)=>{
+   const percent=total>0?Math.floor(loaded*100/total):0;
+   $("phase").textContent="Preparo il documento nel browser: "+percent+"%";
+  });
+  showStatus("Caricamento","PDF letto correttamente. Invio al Codespace…");
+  const dataToSend=makeUploadPayload(pdf,file.name,$("quality").value,
+    form.elements.namedItem("grayscale").checked);
+  const response=await fetch("/jobs",{method:"POST",body:dataToSend,cache:"no-store"});
   let data=await response.json();
   if(!response.ok)throw Error(data.error||"Errore durante il caricamento");
   saveJob(data.id);resume(data.id);
  }catch(e){
-  status.hidden=true;fail("Il caricamento non è riuscito: "+(e.message==="Failed to fetch"?"il browser non riesce a raggiungere il server. Verifica che la pagina sia aperta sulla porta 8765.":e.message));
+  status.hidden=true;fail("Caricamento non riuscito: "+(e.message==="Failed to fetch"?"il browser ha interrotto l'invio. Prova a scaricare il PDF da Drive nella cartella Download, poi selezionalo da lì.":e.message));
  }
 });
 recover.addEventListener("click",()=>{if(activeJob)resume(activeJob)});

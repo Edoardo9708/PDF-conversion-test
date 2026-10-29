@@ -22,6 +22,7 @@ from backend import MAX_BYTES, OptimizationError, optimize_pdf
 
 PORT = int(os.getenv("PORT", "8765"))
 INDEX = (Path(__file__).parent / "index.html").read_bytes()
+UPLOAD_MODULE = (Path(__file__).parent / "upload.mjs").read_bytes()
 JOBS: dict[str, dict] = {}
 LOCK = threading.Lock()
 RESULT_TTL = 30 * 60  # Keep completed results in memory for 30 minutes.
@@ -102,6 +103,9 @@ class Handler(BaseHTTPRequestHandler):
         path = urlsplit(self.path).path
         if path == "/":
             self.send_data(200, INDEX, "text/html; charset=utf-8")
+            return
+        if path == "/upload.mjs":
+            self.send_data(200, UPLOAD_MODULE, "text/javascript; charset=utf-8")
             return
         if path == "/health":
             self.json(200, {

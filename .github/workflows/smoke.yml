@@ -9,6 +9,8 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+      - name: Check Android Drive upload staging (JavaScript)
+        run: node tests/upload.test.mjs
       - name: Build official engine container
         run: docker build -t pdf-optimizer-smoke .
       - name: Run synthetic PDF conversion

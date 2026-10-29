@@ -14,7 +14,7 @@ RUN git clone --depth 1 https://github.com/agl/jbig2enc.git /tmp/jbig2enc \
 RUN python -m pip install --upgrade pip \
     && python -m pip install archive-pdf-tools==1.5.7
 WORKDIR /opt/pdf-optimizer
-COPY backend.py server.py index.html ./
+COPY backend.py server.py index.html upload.mjs ./
 COPY tests/ tests/
 EXPOSE 8765
 CMD ["python", "server.py"]

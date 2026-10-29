@@ -20,6 +20,17 @@ Il comando riavvia il solo server PDF Optimizer. Poi aggiorna la scheda web dell
 4. Caricare una COPIA del PDF, scegliere la qualità e scaricare il risultato.
 5. Se la pagina non si apre, leggere `cat /tmp/pdf-optimizer-server.log` dal terminale.
 
+## Caricamento da Google Drive su Android
+Il browser tenta di leggere completamente il file selezionato con FileReader,
+prima di costruire il modulo di caricamento. In questo modo evita di passare
+direttamente al motore di upload il riferimento a un file virtuale, che su
+Chromium/Brave può produrre `ERR_UPLOAD_FILE_CHANGED`.
+
+**Limite:** se Android non concede l'accesso al contenuto di Google Drive,
+nessuna funzione web può leggere il file. In quel caso l'app mostra un errore
+esplicito: scarica il documento in **Download** e selezionalo localmente.
+Il documento non deve essere reso pubblico.
+
 ## Cosa fa
 - Renderizza il PDF a 250 DPI con Poppler.
 - Rigenera hOCR con Tesseract (`ita+eng`): **il vecchio OCR non è mantenuto identico**.
